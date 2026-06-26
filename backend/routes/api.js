@@ -157,6 +157,14 @@ router.post('/paypal/create-order', async (req, res) => {
     const order = await createOrder(sessionId);
     orderMap.set(order.orderID, sessionId);
 
+    // 🔥 预生成完整简历——用户支付回来直接秒出
+    const session = resultStore.get(sessionId);
+    if (!session.fullResult) {
+      console.log('⚡ 预生成完整简历中...');
+      session.fullResultPromise = tailorResume(session.resumeText, session.jobDescription, false)
+        .then(result => { session.fullResult = result; return result; });
+    }
+
     res.json({ orderID: order.orderID, status: order.status, approvalUrl: order.approvalUrl });
   } catch (err) {
     console.error('Create order error:', err);
@@ -184,12 +192,13 @@ router.post('/paypal/capture-order', async (req, res) => {
       return res.status(404).json({ error: '会话已过期，请重新上传' });
     }
 
-    // 生成完整简历
-    let fullResult = session.fullResult;
-    if (!fullResult) {
-      fullResult = await tailorResume(session.resumeText, session.jobDescription, false);
-      session.fullResult = fullResult;
-      session.paid = true;
+    // 用预生成的结果（如果还在生成中等它完成）
+    if (!session.fullResult && session.fullResultPromise) {
+      await session.fullResultPromise;
+    }
+    // 极端情况：预生成失败或还没开始，则当场生成
+    if (!session.fullResult) {
+      session.fullResult = await tailorResume(session.resumeText, session.jobDescription, false);
     }
 
     orderMap.delete(orderID);
