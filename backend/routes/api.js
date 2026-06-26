@@ -6,6 +6,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const { v4: uuidv4 } = require('uuid');
 const { tailorResume } = require('../services/claude');
+const { createOrder, captureOrder, PRICE } = require('../services/paypal');
 
 const router = express.Router();
 
@@ -129,6 +130,81 @@ router.post('/tailor', async (req, res) => {
   }
 });
 
+// ============================================
+// PayPal 支付路由
+// ============================================
+
+// GET /api/paypal/config — 返回前端需要的 PayPal 配置
+router.get('/paypal/config', (req, res) => {
+  res.json({
+    clientId: process.env.PAYPAL_CLIENT_ID || '',
+    price: PRICE,
+  });
+});
+
+// 存储 PayPal orderId → sessionId 的映射
+const orderMap = new Map();
+
+// POST /api/paypal/create-order — 创建 PayPal 订单
+router.post('/paypal/create-order', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+
+    if (!resultStore.has(sessionId)) {
+      return res.status(404).json({ error: '会话已过期，请重新上传' });
+    }
+
+    const order = await createOrder(sessionId);
+    orderMap.set(order.orderID, sessionId);
+
+    res.json({ orderID: order.orderID, status: order.status });
+  } catch (err) {
+    console.error('Create order error:', err);
+    res.status(500).json({ error: '创建支付订单失败：' + err.message });
+  }
+});
+
+// POST /api/paypal/capture-order — 捕获支付并返回完整简历
+router.post('/paypal/capture-order', async (req, res) => {
+  try {
+    const { orderID } = req.body;
+
+    // 捕获支付
+    const capture = await captureOrder(orderID);
+
+    if (capture.status !== 'COMPLETED') {
+      return res.status(402).json({ error: '支付未完成' });
+    }
+
+    // 找到对应的会话
+    const sessionId = orderMap.get(orderID) || capture.customId;
+    const session = resultStore.get(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ error: '会话已过期，请重新上传' });
+    }
+
+    // 生成完整简历
+    let fullResult = session.fullResult;
+    if (!fullResult) {
+      fullResult = await tailorResume(session.resumeText, session.jobDescription, false);
+      session.fullResult = fullResult;
+      session.paid = true;
+    }
+
+    orderMap.delete(orderID);
+
+    res.json({
+      result: fullResult,
+      payerEmail: capture.payerEmail,
+      amount: capture.amount,
+    });
+  } catch (err) {
+    console.error('Capture error:', err);
+    res.status(500).json({ error: '支付验证失败：' + err.message });
+  }
+});
+
 // 定时清理过期会话（1小时后过期）
 setInterval(() => {
   const now = Date.now();
@@ -137,6 +213,12 @@ setInterval(() => {
       resultStore.delete(id);
     }
   }
-}, 10 * 60 * 1000); // 每 10 分钟清理一次
+  // 同步清理订单映射
+  for (const [orderId, sessionId] of orderMap) {
+    if (!resultStore.has(sessionId)) {
+      orderMap.delete(orderId);
+    }
+  }
+}, 10 * 60 * 1000);
 
 module.exports = router;
