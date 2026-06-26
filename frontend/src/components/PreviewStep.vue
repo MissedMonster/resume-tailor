@@ -58,44 +58,6 @@ onMounted(async () => {
   } catch (e) {
     // 开发模式下可能没有 PayPal 配置，忽略
   }
-
-  // 检查是否从 PayPal 支付页面返回
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token'); // PayPal 返回的 order ID
-  const storedOrder = sessionStorage.getItem('paypal_order_id');
-  const storedSession = sessionStorage.getItem('paypal_session_id');
-
-  if (token && storedOrder && storedSession) {
-    // 用户刚从 PayPal 支付完回来
-    loading.value = true;
-    try {
-      const res = await fetch('/api/paypal/capture-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderID: storedOrder }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Payment failed');
-      }
-
-      const data = await res.json();
-
-      // 清理
-      sessionStorage.removeItem('paypal_order_id');
-      sessionStorage.removeItem('paypal_session_id');
-      // 清理 URL 参数
-      window.history.replaceState({}, '', window.location.pathname);
-
-      paid.value = true;
-      emit('paid', data.result);
-    } catch (err) {
-      error.value = err.message;
-    } finally {
-      loading.value = false;
-    }
-  }
 });
 
 async function handlePay() {
