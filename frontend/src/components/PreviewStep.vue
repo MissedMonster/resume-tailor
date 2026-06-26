@@ -44,6 +44,8 @@ const props = defineProps({
 
 const emit = defineEmits(['paid', 'back']);
 
+// 这里不再需要 capture 逻辑，App.vue 处理了
+
 const price = ref('4.99');
 const loading = ref(false);
 const paid = ref(false);

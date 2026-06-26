@@ -99,6 +99,7 @@ async function submit() {
     emit('done', {
       sessionId: data.sessionId,
       preview: data.preview,
+      usage: data.usage,
     });
   } catch (err) {
     error.value = err.message;

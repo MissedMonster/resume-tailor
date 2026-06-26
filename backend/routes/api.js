@@ -72,7 +72,7 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
     }
 
     // 生成预览版本
-    const previewText = await tailorResume(resumeText, jobDescription, true);
+    const { text: previewText, usage: previewUsage } = await tailorResume(resumeText, jobDescription, true);
 
     // 生成会话 ID，暂存完整数据
     const sessionId = uuidv4();
@@ -80,6 +80,7 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
       resumeText,
       jobDescription,
       previewText,
+      previewUsage,
       createdAt: Date.now(),
       paid: false,
       fullResult: null,
@@ -91,6 +92,7 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
     res.json({
       sessionId,
       preview: previewText,
+      usage: previewUsage,
       message: '预览已生成，付款后获取完整简历',
     });
   } catch (err) {
@@ -119,11 +121,12 @@ router.post('/tailor', async (req, res) => {
     }
 
     // 生成完整结果
-    const fullResult = await tailorResume(session.resumeText, session.jobDescription, false);
+    const { text: fullResult, usage } = await tailorResume(session.resumeText, session.jobDescription, false);
     session.fullResult = fullResult;
+    session.fullUsage = usage;
     session.paid = true;
 
-    res.json({ result: fullResult });
+    res.json({ result: fullResult, usage });
   } catch (err) {
     console.error('Tailor error:', err);
     res.status(500).json({ error: '生成失败：' + err.message });
@@ -162,7 +165,11 @@ router.post('/paypal/create-order', async (req, res) => {
     if (!session.fullResult) {
       console.log('⚡ 预生成完整简历中...');
       session.fullResultPromise = tailorResume(session.resumeText, session.jobDescription, false)
-        .then(result => { session.fullResult = result; return result; });
+        .then(({ text, usage }) => {
+          session.fullResult = text;
+          session.fullUsage = usage;
+          return text;
+        });
     }
 
     res.json({ orderID: order.orderID, status: order.status, approvalUrl: order.approvalUrl });
@@ -196,15 +203,18 @@ router.post('/paypal/capture-order', async (req, res) => {
     if (!session.fullResult && session.fullResultPromise) {
       await session.fullResultPromise;
     }
-    // 极端情况：预生成失败或还没开始，则当场生成
+    // 极端情况：预生成失败，当场生成
     if (!session.fullResult) {
-      session.fullResult = await tailorResume(session.resumeText, session.jobDescription, false);
+      const { text, usage } = await tailorResume(session.resumeText, session.jobDescription, false);
+      session.fullResult = text;
+      session.fullUsage = usage;
     }
 
     orderMap.delete(orderID);
 
     res.json({
       result: session.fullResult,
+      usage: session.fullUsage || null,
       payerEmail: capture.payerEmail,
       amount: capture.amount,
     });

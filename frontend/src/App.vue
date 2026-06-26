@@ -44,6 +44,7 @@
     <ResultStep
       v-if="step === 3"
       :result="fullResult"
+      :usage="usage"
       @restart="onRestart"
     />
   </div>
@@ -59,6 +60,7 @@ const step = ref(1);
 const sessionId = ref('');
 const previewText = ref('');
 const fullResult = ref('');
+const usage = ref(null);
 const captureError = ref('');
 
 // 页面加载时检查是否从 PayPal 支付回来
@@ -93,6 +95,7 @@ onMounted(async () => {
 
       // 显示结果
       fullResult.value = data.result;
+      usage.value = data.usage;
       step.value = 3;
     } catch (err) {
       captureError.value = err.message;
@@ -101,14 +104,16 @@ onMounted(async () => {
   }
 });
 
-function onUploadDone({ sessionId: sid, preview }) {
+function onUploadDone({ sessionId: sid, preview, usage: u }) {
   sessionId.value = sid;
   previewText.value = preview;
+  usage.value = u;
   step.value = 2;
 }
 
-function onPaid(result) {
+function onPaid({ result, usage: u }) {
   fullResult.value = result;
+  if (u) usage.value = u;
   step.value = 3;
 }
 
@@ -117,6 +122,7 @@ function onRestart() {
   sessionId.value = '';
   previewText.value = '';
   fullResult.value = '';
+  usage.value = null;
   captureError.value = '';
 }
 </script>
