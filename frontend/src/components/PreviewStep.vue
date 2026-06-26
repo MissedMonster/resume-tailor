@@ -18,16 +18,13 @@
 
         <div v-if="error" class="error-msg">{{ error }}</div>
 
-        <!-- PayPal 按钮容器 -->
-        <div v-if="paypalReady" ref="paypalBtn" style="margin-top:8px"></div>
-        <div v-else-if="!loading" style="text-align:center;padding:16px;color:var(--text-light)">
-          Loading payment...
-        </div>
-
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <p>Processing payment...</p>
-        </div>
+        <button
+          class="btn btn-success"
+          :disabled="loading"
+          @click="handlePay"
+        >
+          {{ loading ? 'Redirecting to PayPal...' : '💰 Pay $' + price + ' — Get Full Resume' }}
+        </button>
 
         <button class="btn btn-outline" style="margin-top:12px;width:100%" @click="$emit('back')">
           ← Back to Edit
@@ -38,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const props = defineProps({
   sessionId: String,
@@ -51,103 +48,87 @@ const price = ref('4.99');
 const loading = ref(false);
 const paid = ref(false);
 const error = ref('');
-const paypalReady = ref(false);
-const paypalBtn = ref(null);
 
 onMounted(async () => {
+  // 获取 PayPal 配置（价格等）
   try {
-    // 1. 获取 PayPal 配置
-    const configRes = await fetch('/api/paypal/config');
-    const config = await configRes.json();
+    const res = await fetch('/api/paypal/config');
+    const config = await res.json();
     if (config.price) price.value = config.price;
-
-    if (!config.clientId) {
-      // 无 PayPal 配置，回退到直接获取模式（开发用）
-      return;
-    }
-
-    // 2. 加载 PayPal SDK
-    await loadPayPalScript(config.clientId);
-
-    // 3. 渲染按钮
-    await nextTick();
-    renderPayPalButton();
-  } catch (err) {
-    console.error('PayPal init error:', err);
+  } catch (e) {
+    // 开发模式下可能没有 PayPal 配置，忽略
   }
-});
 
-function loadPayPalScript(clientId) {
-  return new Promise((resolve, reject) => {
-    if (window.paypal) { resolve(); return; }
+  // 检查是否从 PayPal 支付页面返回
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token'); // PayPal 返回的 order ID
+  const storedOrder = sessionStorage.getItem('paypal_order_id');
+  const storedSession = sessionStorage.getItem('paypal_session_id');
 
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('PayPal SDK 加载失败'));
-    document.head.appendChild(script);
-  });
-}
-
-function renderPayPalButton() {
-  if (!window.paypal || !paypalBtn.value) return;
-
-  window.paypal.Buttons({
-    style: {
-      layout: 'vertical',
-      color: 'gold',
-      shape: 'rect',
-      label: 'pay',
-      height: 44,
-    },
-    createOrder: async () => {
-      loading.value = true;
-      error.value = '';
-
-      const res = await fetch('/api/paypal/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: props.sessionId }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to create order');
-      }
-
-      const data = await res.json();
-      loading.value = false;
-      return data.orderID;
-    },
-    onApprove: async (data) => {
-      loading.value = true;
-
+  if (token && storedOrder && storedSession) {
+    // 用户刚从 PayPal 支付完回来
+    loading.value = true;
+    try {
       const res = await fetch('/api/paypal/capture-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderID: data.orderID }),
+        body: JSON.stringify({ orderID: storedOrder }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Payment verification failed');
+        throw new Error(err.error || 'Payment failed');
       }
 
-      const result = await res.json();
-      loading.value = false;
-      paid.value = true;
-      emit('paid', result.result);
-    },
-    onCancel: () => {
-      loading.value = false;
-    },
-    onError: (err) => {
-      loading.value = false;
-      error.value = err.message || 'Payment failed, please try again';
-      console.error('PayPal error:', err);
-    },
-  }).render(paypalBtn.value);
+      const data = await res.json();
 
-  paypalReady.value = true;
+      // 清理
+      sessionStorage.removeItem('paypal_order_id');
+      sessionStorage.removeItem('paypal_session_id');
+      // 清理 URL 参数
+      window.history.replaceState({}, '', window.location.pathname);
+
+      paid.value = true;
+      emit('paid', data.result);
+    } catch (err) {
+      error.value = err.message;
+    } finally {
+      loading.value = false;
+    }
+  }
+});
+
+async function handlePay() {
+  loading.value = true;
+  error.value = '';
+
+  try {
+    const res = await fetch('/api/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: props.sessionId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create order');
+    }
+
+    const data = await res.json();
+
+    if (!data.approvalUrl) {
+      throw new Error('PayPal service unavailable, please try again later');
+    }
+
+    // 保存状态，支付回来时恢复
+    sessionStorage.setItem('paypal_order_id', data.orderID);
+    sessionStorage.setItem('paypal_session_id', props.sessionId);
+
+    // 跳转到 PayPal 支付页面
+    window.location.href = data.approvalUrl;
+  } catch (err) {
+    loading.value = false;
+    error.value = err.message;
+  }
 }
 </script>

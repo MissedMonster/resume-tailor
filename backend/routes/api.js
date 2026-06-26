@@ -157,7 +157,7 @@ router.post('/paypal/create-order', async (req, res) => {
     const order = await createOrder(sessionId);
     orderMap.set(order.orderID, sessionId);
 
-    res.json({ orderID: order.orderID, status: order.status });
+    res.json({ orderID: order.orderID, status: order.status, approvalUrl: order.approvalUrl });
   } catch (err) {
     console.error('Create order error:', err);
     res.status(500).json({ error: '创建支付订单失败：' + err.message });

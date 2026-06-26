@@ -79,9 +79,15 @@ async function createOrder(sessionId) {
   }
 
   const order = await res.json();
+
+  // 找到 PayPal 支付页面的跳转链接
+  const approvalLink = order.links?.find(l => l.rel === 'approve');
+  const approvalUrl = approvalLink ? approvalLink.href : null;
+
   return {
     orderID: order.id,
     status: order.status,
+    approvalUrl,
   };
 }
 
