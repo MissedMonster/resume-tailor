@@ -1,0 +1,348 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --primary: #6c5ce7;
+  --primary-dark: #5a4bd1;
+  --primary-light: #a29bfe;
+  --success: #00b894;
+  --danger: #e17055;
+  --bg: #f8f9fe;
+  --card-bg: #ffffff;
+  --text: #2d3436;
+  --text-light: #636e72;
+  --border: #dfe6e9;
+  --radius: 12px;
+  --shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 40px 0 32px;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.header h1 span {
+  color: var(--primary);
+}
+
+.header p {
+  color: var(--text-light);
+  font-size: 1.05rem;
+}
+
+/* Steps indicator */
+.steps {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.step-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: white;
+  border: 2px solid var(--border);
+  color: var(--text-light);
+  transition: all 0.3s;
+}
+
+.step-dot.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.step-dot.done {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  align-self: center;
+  background: var(--border);
+  transition: background 0.3s;
+}
+
+.step-line.done {
+  background: var(--success);
+}
+
+/* Card */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+  margin-bottom: 20px;
+}
+
+.card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* Form elements */
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 160px;
+  transition: border-color 0.2s;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* File upload area */
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 20px;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+  border-color: var(--primary);
+  background: rgba(108, 92, 231, 0.04);
+}
+
+.upload-area .icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.upload-area .main-text {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.upload-area .sub-text {
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 12px;
+}
+
+.file-name button {
+  background: none;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 2px;
+}
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 32px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+  width: 100%;
+}
+
+.btn-outline {
+  background: white;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* Preview / Result */
+.preview-box,
+.result-box {
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.preview-footer {
+  text-align: center;
+  padding: 16px 0;
+  color: var(--text-light);
+  font-style: italic;
+  border-top: 1px dashed var(--border);
+  margin-top: 16px;
+}
+
+/* Price tag */
+.price-tag {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.price-tag .amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.price-tag .period {
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 40px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error */
+.error-msg {
+  background: #fff5f5;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+/* Paywall */
+.paywall {
+  position: relative;
+}
+
+.paywall .blur-area {
+  filter: blur(8px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.paywall-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.6);
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  #app { padding: 12px; }
+  .card { padding: 20px; }
+  .header h1 { font-size: 1.5rem; }
+}
