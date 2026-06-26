@@ -7,7 +7,7 @@
 
     <div class="no-print" style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
       <button class="btn btn-primary" @click="printPDF">
-        📄 Save as PDF
+        🖨️ Print / Save as PDF
       </button>
       <button class="btn btn-outline" @click="downloadTXT">
         📥 Download as TXT
@@ -40,6 +40,7 @@ import { ref, computed } from 'vue';
 const props = defineProps({
   result: String,
   usage: Object,
+  originalName: String,
 });
 
 defineEmits(['restart']);
@@ -98,12 +99,15 @@ function mdToHTML(md) {
 const renderedHTML = computed(() => mdToHTML(props.result));
 
 function printPDF() {
-  // 保存原始 title
   const originalTitle = document.title;
-  document.title = 'Tailored Resume';
-
+  document.title = baseName();
   window.print();
   document.title = originalTitle;
+}
+
+function baseName() {
+  const raw = (props.originalName || 'resume').replace(/\.[^.]+$/, ''); // 去掉扩展名
+  return raw + ' (Tailored)';
 }
 
 function downloadTXT() {
@@ -111,7 +115,7 @@ function downloadTXT() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'tailored-resume.txt';
+  a.download = baseName() + '.txt';
   a.click();
   URL.revokeObjectURL(url);
 }

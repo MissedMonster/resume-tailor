@@ -100,6 +100,7 @@ async function submit() {
       sessionId: data.sessionId,
       preview: data.preview,
       usage: data.usage,
+      originalName: file.value?.name || 'resume',
     });
   } catch (err) {
     error.value = err.message;

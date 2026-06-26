@@ -45,6 +45,7 @@
       v-if="step === 3"
       :result="fullResult"
       :usage="usage"
+      :original-name="originalName"
       @restart="onRestart"
     />
   </div>
@@ -61,6 +62,7 @@ const sessionId = ref('');
 const previewText = ref('');
 const fullResult = ref('');
 const usage = ref(null);
+const originalName = ref('');
 const captureError = ref('');
 
 // 页面加载时检查是否从 PayPal 支付回来
@@ -104,10 +106,11 @@ onMounted(async () => {
   }
 });
 
-function onUploadDone({ sessionId: sid, preview, usage: u }) {
+function onUploadDone({ sessionId: sid, preview, usage: u, originalName: name }) {
   sessionId.value = sid;
   previewText.value = preview;
   usage.value = u;
+  originalName.value = name || 'resume';
   step.value = 2;
 }
 
@@ -123,6 +126,7 @@ function onRestart() {
   previewText.value = '';
   fullResult.value = '';
   usage.value = null;
+  originalName.value = '';
   captureError.value = '';
 }
 </script>
