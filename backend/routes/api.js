@@ -204,7 +204,7 @@ router.post('/paypal/capture-order', async (req, res) => {
     orderMap.delete(orderID);
 
     res.json({
-      result: fullResult,
+      result: session.fullResult,
       payerEmail: capture.payerEmail,
       amount: capture.amount,
     });
