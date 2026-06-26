@@ -93,6 +93,7 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
       sessionId,
       preview: previewText,
       usage: previewUsage,
+      originalName: req.file.originalname,
       message: '预览已生成，付款后获取完整简历',
     });
   } catch (err) {
