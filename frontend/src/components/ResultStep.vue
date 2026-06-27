@@ -24,13 +24,6 @@
       ✅ Copied!
     </div>
 
-    <!-- Token 消耗 -->
-    <div v-if="usage" class="no-print" style="margin-top:16px;text-align:center">
-      <span style="font-size:0.75rem;color:var(--text-light);background:#f0f0f0;padding:4px 10px;border-radius:10px">
-        🔤 Claude tokens: {{ fmt(usage.inputTokens) }} in / {{ fmt(usage.outputTokens) }} out
-        · ~${{ cost(usage).toFixed(3) }} cost
-      </span>
-    </div>
   </div>
 </template>
 
